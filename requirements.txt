@@ -1,0 +1,10 @@
+react.js
+tailwind css
+vite 
+langchain
+openai
+pypdf2
+keybert
+python-dotenv
+nltk
+textstat
