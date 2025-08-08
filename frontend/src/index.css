@@ -19,6 +19,27 @@ All colors MUST be HSL.
   }
 }
 
+.glare-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.glare-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%; /* Start off-screen to the left */
+  width: 50%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3); /* The semi-transparent glare color */
+  transform: skewX(-20deg); /* Tilt the glare effect */
+  transition: all 0.5s ease-in-out;
+}
+
+.glare-effect:hover::before {
+  left: 150%; /* Move the glare across the button on hover */
+}
+
 @layer base {
   :root {
     /* Base colors - deep space theme */

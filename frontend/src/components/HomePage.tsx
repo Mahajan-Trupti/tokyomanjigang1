@@ -135,22 +135,25 @@ const HomePage = () => {
 
         {/* Difficulty Selector */}
         <div className="mb-6">
-          <label
-            className="block text-sm font-medium text-muted-foreground mb-2"
-            htmlFor="difficulty"
-          >
+          <label className="block text-sm font-medium text-muted-foreground mb-2">
             Select Difficulty
           </label>
-          <select
-            id="difficulty"
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-transparent focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-          >
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
+          <div className="grid grid-cols-3 gap-4">
+            {["easy", "medium", "hard"].map((level) => (
+              <button
+                key={level}
+                onClick={() => setDifficulty(level)}
+                className={`p-4 rounded-xl text-lg font-medium text-white transition-all duration-300
+                  ${
+                    difficulty === level
+                      ? "magic-button"
+                      : "bg-gray-800 border-2 border-gray-700 hover:border-primary-light hover:scale-105"
+                  }`}
+              >
+                {level.charAt(0).toUpperCase() + level.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Number of Questions */}
@@ -179,7 +182,7 @@ const HomePage = () => {
             className="magic-button w-full px-6 py-3 rounded-xl text-lg font-medium text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!selectedFile || isLoading}
           >
-            {isLoading ? "Generating..." : "Generate Quiz Directly →"}
+            {isLoading ? "Generating..." : "Generate Instant Quiz →"}
           </button>
           <button
             onClick={handleTopicsSelection}
