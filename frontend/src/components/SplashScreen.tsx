@@ -6,7 +6,7 @@ const SplashScreen = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Navigate to the landing page after 3 seconds
+    // redirect to landing 3 sec baad
     setTimeout(() => {
       navigate("/landing");
     }, 3000);

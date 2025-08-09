@@ -45,7 +45,7 @@ const teamMembers = [
     image: "./aditya.jpeg",
     branch: "ENTC",
     year: "2nd Year",
-    bio: "DUMMY TEXT DUMMY TEXT DUMMY TEX",
+    bio: "siuuuuuuuuuuu",
   },
   {
     name: "Sarvesh Kalbhande",

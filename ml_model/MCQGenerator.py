@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Load API keys
+# load API keys
 GOOGLE_API_KEY_MAIN = os.getenv("GOOGLE_API_KEY_MAIN")
 GOOGLE_API_KEY_SUMMARY = os.getenv("GOOGLE_API_KEY_SUMMARY")
 
@@ -19,7 +19,7 @@ if not GOOGLE_API_KEY_MAIN:
 if not GOOGLE_API_KEY_SUMMARY:
     raise ValueError("GOOGLE_API_KEY_SUMMARY must be set in your environment or .env file")
 
-# Create LLM instances
+# create LLM instances
 llm_main = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash-latest",
     temperature=0.3,
@@ -101,7 +101,7 @@ Repeat this format for each of the {num_questions} questions.
 prompt = PromptTemplate.from_template(mcq_prompt_multiple)
 mcq_chain = prompt | llm_main | StrOutputParser()
 
-# --- PDF Text Extraction ---
+# --- pdf text extraction ---
 def extract_pdf_text_from_file(pdf_path):
     text = ""
     try:
@@ -116,13 +116,13 @@ def extract_pdf_text_from_file(pdf_path):
         return None
     return text
 
-# --- MCQ Parsing ---
+# --- parsing the mcqs ---
 def parse_mcq_output(text_output):
     mcq_parts = text_output.split('Question:')
     mcq_list = [('Question:' + part).strip() for part in mcq_parts if part.strip()]
     return mcq_list
 
-# --- Summary ---
+# --- func for summary ---
 def generate_summary_from_file(pdf_path):
     pdf_text = extract_pdf_text_from_file(pdf_path)
     if not pdf_text:
@@ -135,7 +135,7 @@ def generate_summary_from_file(pdf_path):
         print(f"Error generating summary: {e}")
         raise e
 
-# --- Keywords ---
+# --- func for keywords ---
 def generate_keywords_from_file(pdf_path):
     pdf_text = extract_pdf_text_from_file(pdf_path)
     if not pdf_text:
@@ -154,7 +154,7 @@ def generate_keywords_from_file(pdf_path):
         print(f"Error generating keywords: {e}")
         raise e
 
-# --- Topics ---
+# --- topics ---
 def generate_topics_from_file(pdf_path):
     pdf_text = extract_pdf_text_from_file(pdf_path)
     if not pdf_text:
@@ -174,7 +174,7 @@ def generate_topics_from_file(pdf_path):
         print(f"Error generating topics: {e}")
         raise e
 
-# --- MCQ Generation ---
+# --- func for mcq generation ---
 def generate_mcqs_from_file(pdf_path, difficulty, num_questions, topics, max_retries=5, initial_delay=1):
     pdf_text = extract_pdf_text_from_file(pdf_path)
     if not pdf_text:

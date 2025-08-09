@@ -10,7 +10,6 @@ import {
   addDoc,
 } from "firebase/firestore";
 
-// Assuming you have these exports in your firebase.ts file
 import { auth, db } from "../firebase";
 
 interface Mcq {
@@ -33,7 +32,8 @@ interface QuizResult {
   };
 }
 
-// NOTE: The saveMCQ, saveQuizResult, and getQuizHistory functions are now integrated directly here
+//saving the quiz history and stuff
+
 const saveMCQ = async (mcq: Mcq) => {
   const user = auth.currentUser;
   if (user && mcq.options) {

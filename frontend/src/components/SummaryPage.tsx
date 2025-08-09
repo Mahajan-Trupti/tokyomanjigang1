@@ -4,8 +4,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 const SummaryPage = () => {
   const [summary, setSummary] = useState("");
   const [keywords, setKeywords] = useState([]);
-  const [isLoading, setIsLoading] = useState(false); // For initial data fetch
-  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false); // For quiz generation
+  const [isLoading, setIsLoading] = useState(false); // initil data fetch
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false); // quiz generation
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,7 +14,7 @@ const SummaryPage = () => {
 
   useEffect(() => {
     const fetchSummaryAndKeywords = async () => {
-      // Use the PDF file from the navigation state
+      // useing the file from the navigation state
       if (!pdfFile) {
         setErrorMessage("No file uploaded. Please go back to the dashboard.");
         return;
@@ -70,7 +70,7 @@ const SummaryPage = () => {
     formData.append("pdf_file", pdfFile);
     formData.append("difficulty", quizParams.difficulty);
     formData.append("numQuestions", quizParams.numQuestions);
-    formData.append("topics", "[]"); // Send empty topics array since user didn't choose any
+    formData.append("topics", "[]"); // empty array if the user doesnt choose anything
 
     try {
       const response = await fetch("http://127.0.0.1:5000/generate_quiz", {
@@ -100,7 +100,7 @@ const SummaryPage = () => {
   };
 
   const handleChooseTopics = () => {
-    // Pass the file and quiz parameters to the topics page
+    // passing file and quiz parameters to the topics page
     navigate("/topics", { state: { pdfFile, quizParams } });
   };
 

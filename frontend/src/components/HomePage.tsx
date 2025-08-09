@@ -66,7 +66,8 @@ const HomePage = () => {
       showMessage("Please upload a PDF file first.");
       return;
     }
-    // Pass the file and quiz parameters directly in the state
+
+    //file and quiz parameeters
     navigate("/topics", {
       state: {
         pdfFile: selectedFile,
@@ -80,7 +81,7 @@ const HomePage = () => {
       showMessage("Please upload a PDF file first.");
       return;
     }
-    // Pass the file and quiz parameters directly in the state
+    //file and quiz parameters
     navigate("/summary", {
       state: {
         pdfFile: selectedFile,
@@ -200,7 +201,7 @@ const HomePage = () => {
             className="magic-button w-full px-6 py-3 rounded-xl text-lg font-medium text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!selectedFile || isLoading}
           >
-            {isLoading ? "Generating..." : "Generate Quiz Directly →"}
+            {isLoading ? "Generating..." : "Generate Instant Quiz →"}
           </button>
           <button
             onClick={handleTopicsSelection}

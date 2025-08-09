@@ -3,9 +3,7 @@ import Spline from "@splinetool/react-spline";
 import { Link } from "react-router-dom";
 import { Upload, Sparkles, FileText } from "lucide-react";
 
-// All component logic is now defined within this file
-
-// Component for the landing page's background
+//background component
 const Background = () => {
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">

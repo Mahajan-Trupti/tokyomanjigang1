@@ -11,20 +11,20 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); // Clear previous errors
+    setError(null); // clear previous errors
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match"); // Set error state instead of alert()
+      setError("Passwords do not match");
       return;
     }
 
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       console.log("✅ Signed up:", auth.currentUser?.email);
-      navigate("/dashboard"); // Redirect to home page after successful signup
+      navigate("/dashboard"); // redirect to home page after successful signup
     } catch (err: any) {
       console.error("Signup error:", err);
-      setError(err.message); // Display Firebase error message
+      setError(err.message); // error message
     }
   };
 

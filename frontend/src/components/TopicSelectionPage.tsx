@@ -7,8 +7,8 @@ const TopicSelectionPage = () => {
   const location = useLocation();
   const [topics, setTopics] = useState([]);
   const [selectedTopics, setSelectedTopics] = useState([]);
-  const [isLoading, setIsLoading] = useState(false); // For initial data fetch
-  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false); // For quiz generation
+  const [isLoading, setIsLoading] = useState(false); // initial data fetch
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false); // quiz generation
   const [errorMessage, setErrorMessage] = useState("");
 
   const { pdfFile, quizParams } = location.state || {};
