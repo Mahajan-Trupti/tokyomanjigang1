@@ -1,0 +1,77 @@
+import os
+import PyPDF2
+import re
+import json
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from sumy.parsers.plaintext import PlaintextParser
+from sumy.nlp.tokenizers import Tokenizer
+from sumy.summarizers.lex_rank import LexRankSummarizer
+
+GOOGLE_API_KEY = "API_KEY_FOR_SUMMARY_AND_KEYWORDS"
+llm = ChatGoogleGenerativeAI(
+    model="gemini-1.5-flash-latest",
+    temperature=0.3,
+    google_api_key=GOOGLE_API_KEY
+)
+MAX_CONTEXT_LENGTH = 100000
+
+keyword_prompt = PromptTemplate.from_template("""
+You are a text analyzer.
+Your task is to read the provided text and identify the most important keywords and key phrases.
+Provide exactly 10 keywords/phrases as JSON array of strings, for example: ["Keyword 1", "Keyword 2", ...].
+=== INPUT START ===
+{text}
+=== INPUT END ===
+""")
+keyword_chain = keyword_prompt | llm | StrOutputParser()
+
+def extract_pdf_text_from_file(pdf_path):
+    text = ""
+    try:
+        with open(pdf_path, "rb") as f:
+            reader = PyPDF2.PdfReader(f)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+    except Exception as e:
+        print(f"Error reading PDF: {e}")
+        return None
+    return text
+
+def generate_summary_from_file(pdf_path, sentences_count=5):
+    pdf_text = extract_pdf_text_from_file(pdf_path)
+    if not pdf_text:
+        return None
+    try:
+        parser = PlaintextParser.from_string(pdf_text, Tokenizer("english"))
+        summarizer_obj = LexRankSummarizer()
+        summary_sentences = summarizer_obj(parser.document, sentences_count=sentences_count)
+        summary = " ".join([str(sentence) for sentence in summary_sentences])
+        return summary
+    except Exception as e:
+        print(f"Error generating summary: {e}")
+        return None
+
+def generate_keywords_from_file(pdf_path):
+    pdf_text = extract_pdf_text_from_file(pdf_path)
+    if not pdf_text:
+        return []
+    trimmed_text = pdf_text[:MAX_CONTEXT_LENGTH]
+    try:
+        result = keyword_chain.invoke({"text": trimmed_text})
+        match = re.search(r'\[.*?\]', result, re.DOTALL)
+        if match:
+            json_string = match.group(0)
+            keywords = json.loads(json_string)
+            return keywords
+        else:
+            return []
+    except json.JSONDecodeError as e:
+        print(f"Debugging: JSON decoding error: {e}")
+        return []
+    except Exception as e:
+        print(f"Debugging: Error generating keywords: {e}")
+        return []

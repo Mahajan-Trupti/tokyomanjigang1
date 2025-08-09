@@ -1,0 +1,124 @@
+import os
+import tempfile
+import json
+from functools import wraps
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+# --- Imports from our two new files ---
+from mcq_generator import generate_mcqs_from_file, generate_topics_from_file
+from summary_keywords import generate_summary_from_file, generate_keywords_from_file
+
+app = Flask(__name__)
+CORS(app)
+
+
+# ---------- File Upload Decorator ----------
+def handle_file_upload(f):
+    """
+    Saves uploaded PDF into a temp file and passes its path to the main function.
+    Deletes the file afterwards.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'pdf_file' not in request.files:
+            return jsonify({"error": "No PDF file provided"}), 400
+
+        pdf_file = request.files['pdf_file']
+        if pdf_file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+
+        if not pdf_file.filename.lower().endswith('.pdf'):
+            return jsonify({"error": "Invalid file type. Please upload a PDF."}), 400
+
+        temp_pdf_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                pdf_file.save(tmp_file.name)
+                temp_pdf_path = tmp_file.name
+
+            # Pass the temp file path to the handler
+            return f(temp_pdf_path, *args, **kwargs)
+
+        except Exception as e:
+            return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+        finally:
+            if temp_pdf_path and os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
+
+    return decorated_function
+
+
+# ---------- Routes ----------
+
+@app.route('/extract_topics', methods=['POST'])
+@handle_file_upload
+def extract_topics(temp_pdf_path):
+    """
+    Uses mcq_generator (API key #2) to detect topics.
+    """
+    try:
+        topics = generate_topics_from_file(temp_pdf_path)
+        if topics:
+            return jsonify({"topics": topics}), 200
+        else:
+            return jsonify({"error": "Could not extract topics."}), 500
+    except Exception as e:
+        return jsonify({"error": f"Failed to extract topics: {str(e)}"}), 500
+
+
+@app.route('/extract_content', methods=['POST'])
+@handle_file_upload
+def extract_content(temp_pdf_path):
+    """
+    Uses summary_keywords (API key #1) to get summary & keywords.
+    Also calls mcq_generator for topics.
+    """
+    try:
+        summary = generate_summary_from_file(temp_pdf_path)
+        keywords = generate_keywords_from_file(temp_pdf_path)
+        topics = generate_topics_from_file(temp_pdf_path)  # from mcq_generator
+
+        if summary and topics:
+            return jsonify({
+                "summary": summary,
+                "keywords": keywords,
+                "topics": topics
+            }), 200
+        else:
+            return jsonify({"error": "Could not extract content."}), 500
+    except Exception as e:
+        return jsonify({"error": f"Failed to extract content: {str(e)}"}), 500
+
+
+@app.route('/generate_quiz', methods=['POST'])
+@handle_file_upload
+def generate_quiz(temp_pdf_path):
+    """
+    Uses mcq_generator (API key #2) for MCQ generation.
+    """
+    try:
+        difficulty = request.form.get('difficulty', 'medium')
+        num_questions = int(request.form.get('numQuestions', 5))
+        topics_json = request.form.get('topics', '[]')
+        topics = json.loads(topics_json)
+
+        mcqs = generate_mcqs_from_file(temp_pdf_path, difficulty, num_questions, topics)
+
+        if mcqs:
+            return jsonify({"mcqs": mcqs}), 200
+        else:
+            return jsonify({"error": "Could not generate MCQs."}), 500
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate MCQs: {str(e)}"}), 500
+
+
+@app.route('/')
+def index():
+    return "Flask backend is running with dual API keys!"
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)

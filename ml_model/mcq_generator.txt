@@ -1,0 +1,118 @@
+import os
+import PyPDF2
+import re
+import json
+import time
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+GOOGLE_API_KEY = "AIzaSyBquj6MpHZ8n-zvtpUM6t7aHSKT0aFwh9k"
+llm = ChatGoogleGenerativeAI(
+    model="gemini-1.5-flash-latest",
+    temperature=0.3,
+    google_api_key=GOOGLE_API_KEY
+)
+MAX_CONTEXT_LENGTH = 100000
+
+topic_prompt = PromptTemplate.from_template("""
+You are an intelligent document analyzer.
+Your task is to read the provided text and identify the main topics covered.
+Provide exactly 9 topics as JSON array of strings, for example: ["Topic 1", "Topic 2", ...].
+=== INPUT START ===
+{text}
+=== INPUT END ===
+""")
+topic_chain = topic_prompt | llm | StrOutputParser()
+
+mcq_prompt_multiple = """
+You are an MCQ generator.
+Create exactly {num_questions} MCQs of {difficulty} difficulty.
+{topics_instruction}
+Format:
+Question: <your question>
+Options:
+A. <option A>
+B. <option B>
+C. <option C>
+D. <option D>
+Answer: <Correct Option Letter>
+Explanation: <Short explanation>
+Difficulty: <Easy / Medium / Hard>
+Topic: <Main concept or subject>
+Repeat for all questions.
+Use only info from provided content.
+=== INPUT START ===
+{text}
+=== INPUT END ===
+"""
+
+prompt = PromptTemplate.from_template(mcq_prompt_multiple)
+mcq_chain = prompt | llm | StrOutputParser()
+
+def extract_pdf_text_from_file(pdf_path):
+    text = ""
+    try:
+        with open(pdf_path, "rb") as f:
+            reader = PyPDF2.PdfReader(f)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+    except Exception as e:
+        print(f"Error reading PDF: {e}")
+        return None
+    return text
+
+def generate_topics_from_file(pdf_path):
+    pdf_text = extract_pdf_text_from_file(pdf_path)
+    if not pdf_text:
+        return []
+    trimmed_text = pdf_text[:MAX_CONTEXT_LENGTH]
+    try:
+        result = topic_chain.invoke({"text": trimmed_text})
+        match = re.search(r'\[.*?\]', result, re.DOTALL)
+        if match:
+            json_string = match.group(0)
+            topics = json.loads(json_string)
+            return topics
+        else:
+            return []
+    except Exception as e:
+        print(f"Error generating topics: {e}")
+        return []
+
+def parse_mcq_output(text_output):
+    mcq_parts = text_output.split('Question:')
+    mcq_list = [('Question:' + part).strip() for part in mcq_parts if part.strip()]
+    return mcq_list
+
+def generate_mcqs_from_file(pdf_path, difficulty, num_questions, topics, max_retries=5, initial_delay=1):
+    pdf_text = extract_pdf_text_from_file(pdf_path)
+    if not pdf_text:
+        return ["No text extracted from the PDF or file not found."]
+    trimmed_text = pdf_text[:MAX_CONTEXT_LENGTH]
+    topics_instruction = ""
+    if topics:
+        topics_instruction = f"The questions should be focused on: {', '.join(topics)}."
+    retries = 0
+    while retries < max_retries:
+        try:
+            result = mcq_chain.invoke({
+                "text": trimmed_text,
+                "difficulty": difficulty.capitalize(),
+                "num_questions": num_questions,
+                "topics_instruction": topics_instruction
+            })
+            parsed_mcqs = parse_mcq_output(result)
+            return parsed_mcqs
+        except Exception as e:
+            print(f"Error generating MCQs: {e}")
+            if "quota" in str(e).lower() or "rate limit" in str(e).lower():
+                delay = initial_delay * (2 ** retries)
+                print(f"Rate limit hit. Retrying in {delay} seconds (Retry {retries + 1}/{max_retries})...")
+                time.sleep(delay)
+                retries += 1
+            else:
+                return [f"Error generating MCQs: {e}"]
+    return [f"Failed to generate MCQs after {max_retries} retries due to API limits."]

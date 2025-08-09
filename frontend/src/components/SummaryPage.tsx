@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const SummaryPage = () => {
   const [summary, setSummary] = useState("");
   const [keywords, setKeywords] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // For initial data fetch
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false); // For quiz generation
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const { pdfFile, quizParams } = location.state || {};
 
   useEffect(() => {
     const fetchSummaryAndKeywords = async () => {
-      const uploadedFile = JSON.parse(localStorage.getItem("uploadedFile"));
-      if (!uploadedFile) {
+      // Use the PDF file from the navigation state
+      if (!pdfFile) {
         setErrorMessage("No file uploaded. Please go back to the dashboard.");
         return;
       }
@@ -19,14 +23,8 @@ const SummaryPage = () => {
       setIsLoading(true);
       try {
         const formData = new FormData();
-        // This is a temporary fix for the file not being available.
-        // In a real application, you would store the file or a reference to it on the backend.
-        const dummyFile = new Blob(["dummy content"], {
-          type: "application/pdf",
-        });
-        formData.append("pdf_file", dummyFile, uploadedFile.name);
+        formData.append("pdf_file", pdfFile, pdfFile.name);
 
-        // NEW ENDPOINT
         const response = await fetch(
           "http://127.0.0.1:5000/extract_topics_and_summary",
           {
@@ -54,24 +52,70 @@ const SummaryPage = () => {
         setIsLoading(false);
       }
     };
-    fetchSummaryAndKeywords();
-  }, [navigate]);
 
-  const handleProceedWithQuiz = () => {
-    // Navigate directly to the quiz page, implicitly using the summarized content
-    // We will need to adjust the backend logic to handle this
-    navigate("/quiz");
+    fetchSummaryAndKeywords();
+  }, [navigate, pdfFile]);
+
+  const handleProceedWithQuiz = async () => {
+    setIsGeneratingQuiz(true);
+    setErrorMessage("");
+
+    if (!pdfFile || !quizParams) {
+      setErrorMessage("Quiz parameters or file not found.");
+      setIsGeneratingQuiz(false);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("pdf_file", pdfFile);
+    formData.append("difficulty", quizParams.difficulty);
+    formData.append("numQuestions", quizParams.numQuestions);
+    formData.append("topics", "[]"); // Send empty topics array since user didn't choose any
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/generate_quiz", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || "Something went wrong on the server."
+        );
+      }
+
+      const data = await response.json();
+      localStorage.setItem("generatedMcqs", JSON.stringify(data.mcqs));
+
+      navigate("/quiz");
+    } catch (error) {
+      console.error("Error generating quiz:", error);
+      setErrorMessage(
+        error.message || "Failed to generate quiz. Please try again."
+      );
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
   };
 
   const handleChooseTopics = () => {
-    // Navigate to the topic selection page
-    navigate("/topics");
+    // Pass the file and quiz parameters to the topics page
+    navigate("/topics", { state: { pdfFile, quizParams } });
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen text-white text-xl">
         Loading summary and keywords...
+      </div>
+    );
+  }
+
+  if (isGeneratingQuiz) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-white text-xl">
+        Generating Quiz...
       </div>
     );
   }
@@ -105,12 +149,14 @@ const SummaryPage = () => {
           <button
             onClick={handleProceedWithQuiz}
             className="magic-button w-full px-6 py-3 rounded-xl text-lg font-medium text-white transition-all duration-300"
+            disabled={isLoading || isGeneratingQuiz}
           >
             Proceed with Quiz →
           </button>
           <button
             onClick={handleChooseTopics}
             className="magic-button w-full px-6 py-3 rounded-xl text-lg font-medium text-white transition-all duration-300 bg-gray-700 hover:bg-gray-600"
+            disabled={isLoading || isGeneratingQuiz}
           >
             Choose Topics →
           </button>

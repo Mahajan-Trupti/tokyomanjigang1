@@ -12,7 +12,7 @@ const SplashScreen = () => {
     }, 3000);
   }, [navigate]);
 
-  const text = "synthesia";
+  const text = "synthsia";
   const letters = Array.from(text);
 
   const container = {
